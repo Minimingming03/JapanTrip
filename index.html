@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>망상 일본행</title>
+<meta name="description" content="인천에서 출발하는 70~80만 원짜리 일본 여행 망상과 실제 경비 계산, 일정표.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+JP:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<!-- PAGE:START -->
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">ICN 발 · 일본행 망상 승차권</p>
+    <h1>망상 일본행</h1>
+    <p class="lede">인천에서 떠나는 70~80만 원짜리 일본 여행. 가고 싶은 곳을 고르면 항공권, 숙소, 하루하루 일정과 총 경비가 나와요.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="cond-title">
+    <h2 id="cond-title" class="panel-title">발권 조건</h2>
+    <form id="conditions" class="conditions">
+      <div class="field">
+        <label for="f-date">출발일</label>
+        <input id="f-date" type="date" required>
+        <p id="season-note" class="hint" aria-live="polite"></p>
+      </div>
+      <fieldset class="field">
+        <legend>기간</legend>
+        <div class="seg">
+          <input type="radio" id="f-n2" name="nights" value="2"><label for="f-n2">2박 3일</label>
+          <input type="radio" id="f-n3" name="nights" value="3"><label for="f-n3">3박 4일</label>
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>숙소</legend>
+        <div class="seg">
+          <input type="radio" id="f-hostel" name="tier" value="hostel"><label for="f-hostel">게스트하우스·캡슐</label>
+          <input type="radio" id="f-business" name="tier" value="business"><label for="f-business">비즈니스호텔</label>
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>식비</legend>
+        <div class="seg">
+          <input type="radio" id="f-save" name="food" value="save"><label for="f-save">짠내 모드</label>
+          <input type="radio" id="f-normal" name="food" value="normal"><label for="f-normal">보통</label>
+        </div>
+      </fieldset>
+      <div class="field">
+        <label for="f-shop">쇼핑·굿즈 (엔)</label>
+        <input id="f-shop" type="number" min="0" step="1000" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="f-rate">환율 (100엔당 원)</label>
+        <input id="f-rate" type="number" min="500" max="1500" step="5" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="f-target">목표 예산 (원)</label>
+        <input id="f-target" type="number" min="0" step="10000" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="f-max">최대 예산 (원)</label>
+        <input id="f-max" type="number" min="0" step="10000" inputmode="numeric">
+      </div>
+    </form>
+  </section>
+
+  <section aria-labelledby="tickets-title">
+    <div class="section-head">
+      <h2 id="tickets-title">세 장의 승차권</h2>
+      <p class="section-sub">항공권 + 숙소 + 현지 교통·입장료 + 식비 + 쇼핑을 모두 더한 1인 예상 경비예요.</p>
+    </div>
+    <div id="tickets" class="tickets"></div>
+  </section>
+
+  <section id="detail" class="detail" aria-live="polite"></section>
+
+  <section class="panel memo" aria-labelledby="memo-title">
+    <h2 id="memo-title" class="panel-title">망상 메모장</h2>
+    <p class="section-sub">떠오르는 망상을 적어두세요. 이 브라우저에만 저장돼요.</p>
+    <form id="memo-form" class="memo-form">
+      <label for="m-dest" class="sr-only">어느 여행</label>
+      <select id="m-dest"></select>
+      <label for="m-text" class="sr-only">망상 내용</label>
+      <input id="m-text" type="text" maxlength="140" placeholder="예: 눈 오는 날 노천온천에서 귤 먹기" autocomplete="off">
+      <button type="submit" class="btn">적어두기</button>
+    </form>
+    <ul id="memo-list" class="memo-list"></ul>
+  </section>
+
+  <footer class="foot">
+    <p>가격은 비수기 평일 기준 대략값이고, 실제 가격과 다를 수 있어요. 항공권·숙소 가격은 검색 버튼으로 연결된 사이트에서 꼭 확인하세요. 성수기(연말연시, 설·추석, 일본 골든위크, 여름 휴가철)는 항공권을 1.6배, 금·토 출발은 1.1배로 계산해요.</p>
+  </footer>
+</div>
+<!-- PAGE:END -->
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
