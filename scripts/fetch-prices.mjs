@@ -10,6 +10,9 @@
 //   SERPAPI_KEY          SerpApi의 구글 항공편 검색. 무료 250회/월.
 //                        → 여행지마다 가장 싼 날짜 하나를 구글 항공편으로 다시 확인하고,
 //                          구글이 판단한 "지금 가격이 싼지 비싼지"를 가져옵니다. (하루 3회)
+//   GOOGLE_ALERTS_URL    구글 항공권 가격 추적 알림 메일을 모아둔 구글 시트의 웹 앱 주소.
+//                        google-apps-script/Code.gs 를 설치하면 생겨요. API 키가 아니라
+//                        구글이 내 지메일로 보내준 가격을 그대로 씁니다.
 //
 // 실행: node scripts/fetch-prices.mjs
 // 키는 절대 코드나 저장소에 넣지 말고 GitHub 저장소의 Secrets에만 넣으세요.
@@ -24,6 +27,7 @@ const KEEP_PER_NIGHTS = 60; // 여행지·박수별로 저장할 날짜 수
 
 const TP_TOKEN = process.env.TRAVELPAYOUTS_TOKEN || "";
 const SERP_KEY = process.env.SERPAPI_KEY || "";
+const ALERTS_URL = process.env.GOOGLE_ALERTS_URL || "";
 
 async function loadTripData() {
   const src = await readFile(new URL("js/data.js", ROOT), "utf8");
@@ -140,6 +144,23 @@ async function googleFlights(origin, airports, outbound, inbound) {
   };
 }
 
+// ---------- 구글 항공권 가격 알림 (지메일 → 구글 시트 웹 앱) ----------
+async function googleAlerts() {
+  const json = await getJson(ALERTS_URL);
+  const today = ymd(new Date());
+  return (json.alerts || [])
+    .filter((a) => a.dest && a.price > 0)
+    .map((a) => ({
+      dest: String(a.dest),
+      price: Math.round(Number(a.price)),
+      depart: a.depart || "",
+      return: a.return || "",
+      nights: a.depart && a.return ? daysBetween(a.depart, a.return) : null,
+      receivedAt: a.receivedAt || "",
+    }))
+    .filter((a) => !a.depart || a.depart >= today);
+}
+
 function fallbackDate() {
   // 3주 뒤 이후 첫 화요일 (사이트 기본값과 같은 규칙, 성수기 판정은 생략)
   const d = new Date();
@@ -159,13 +180,23 @@ async function main() {
   const result = {
     updatedAt: new Date().toISOString(),
     currency: "KRW",
-    sources: { travelpayouts: Boolean(TP_TOKEN), google: Boolean(SERP_KEY) },
+    sources: { travelpayouts: Boolean(TP_TOKEN), google: Boolean(SERP_KEY), alerts: Boolean(ALERTS_URL) },
     destinations: {},
     errors: [],
   };
 
+  let alerts = null;
+  if (ALERTS_URL) {
+    try {
+      alerts = await googleAlerts();
+      console.log(`[alerts] ${alerts.length}개 알림`);
+    } catch (e) {
+      result.errors.push(`alerts: ${e.message}`);
+    }
+  }
+
   for (const dest of trip.destinations) {
-    const entry = { offers: [], google: null };
+    const entry = { offers: [], google: null, alerts: [] };
     const old = prev.destinations?.[dest.id] || {};
 
     if (TP_TOKEN) {
@@ -191,11 +222,15 @@ async function main() {
       }
     }
 
+    entry.alerts = alerts
+      ? alerts.filter((a) => a.dest === dest.id).slice(0, 10)
+      : old.alerts || [];
+
     result.destinations[dest.id] = entry;
   }
 
-  if (!TP_TOKEN && !SERP_KEY) {
-    console.log("TRAVELPAYOUTS_TOKEN, SERPAPI_KEY 둘 다 없어서 가격을 가져오지 않았어요.");
+  if (!TP_TOKEN && !SERP_KEY && !ALERTS_URL) {
+    console.log("TRAVELPAYOUTS_TOKEN, SERPAPI_KEY, GOOGLE_ALERTS_URL 이 모두 없어서 가격을 가져오지 않았어요.");
     result.updatedAt = null;
   }
 

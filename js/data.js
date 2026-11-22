@@ -68,6 +68,7 @@ window.TRIP_DATA = {
       sites: [
         { name: "스카이스캐너", href: "https://www.skyscanner.co.kr/" },
         { name: "구글 항공편", href: "https://www.google.com/travel/flights?hl=ko" },
+        { name: "구글 탐색 (지도)", href: "https://www.google.com/travel/explore?hl=ko" },
         { name: "네이버 항공권", href: "https://flight.naver.com/" },
         { name: "카약", href: "https://www.kayak.co.kr/" },
         { name: "트립닷컴", href: "https://kr.trip.com/flights/" },

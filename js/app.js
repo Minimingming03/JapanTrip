@@ -108,6 +108,8 @@
     const P = PRICES && PRICES.destinations && PRICES.destinations[dest.id];
     if (!P) return null;
     const n = Number(state.nights);
+    const alert = (P.alerts || []).find((a) => a.depart === state.date && a.nights === n);
+    if (alert) return { price: alert.price, kind: "alert", depart: alert.depart, airline: "", link: googleFlightsUrl(dest) };
     const g = P.google;
     if (g && g.price && g.depart === state.date && g.nights === n) {
       return { price: g.price, kind: "google", depart: g.depart, airline: g.airline, link: g.link };
@@ -152,6 +154,7 @@
     exact: "실제 최근가",
     near: "근처 날짜 실제가",
     google: "구글 항공편 확인가",
+    alert: "구글 가격 알림",
   };
   // Aviasales는 항공사를 코드로 줘요 → 이름으로 바꿔서 표시
   const AIRLINES = { "7C": "제주항공", TW: "티웨이", LJ: "진에어", ZE: "이스타", BX: "에어부산", RS: "에어서울", MM: "피치", ZG: "ZIPAIR", YP: "에어프레미아", KE: "대한항공", OZ: "아시아나", JL: "JAL", NH: "ANA" };
@@ -169,6 +172,12 @@
   };
 
   // ---------- 링크 ----------
+  function googleFlightsUrl(dest) {
+    const out = parseYmd(state.date);
+    const back = addDays(out, Number(state.nights));
+    return `https://www.google.com/travel/flights?hl=ko&q=${encodeURIComponent(`Flights from ${DATA.origin.code} to ${dest.flight.google} on ${ymd(out)} through ${ymd(back)}`)}`;
+  }
+
   function links(dest) {
     const out = parseYmd(state.date);
     const back = addDays(out, Number(state.nights));
@@ -180,7 +189,9 @@
       flights: [
         { label: "스카이스캐너", href: `https://www.skyscanner.co.kr/transport/flights/${o.toLowerCase()}/${f.skyscanner}/${s(out)}/${s(back)}/?adultsv2=1&cabinclass=economy&rtn=1&preferdirects=true` },
         { label: "네이버 항공권", href: `https://flight.naver.com/flights/international/${o}-${f.naver}-${c(out)}/${f.naver}-${o}-${c(back)}?adult=1&fareType=Y` },
-        { label: "구글 항공편", href: `https://www.google.com/travel/flights?hl=ko&q=${encodeURIComponent(`Flights from ${o} to ${f.google} on ${ymd(out)} through ${ymd(back)}`)}` },
+        { label: "구글 항공편", href: googleFlightsUrl(dest) },
+        { label: "구글 가격 그래프", href: `https://www.google.com/travel/flights?hl=ko&q=${encodeURIComponent(`Flights from ${o} to ${f.google}`)}` },
+        { label: "구글 탐색 (지도)", href: "https://www.google.com/travel/explore?hl=ko" },
       ],
       hotels: [
         { label: "부킹닷컴 (싼 순)", href: `https://www.booking.com/searchresults.ko.html?ss=${encodeURIComponent(dest.lodging.query)}&checkin=${ymd(out)}&checkout=${ymd(back)}&group_adults=1&no_rooms=1&group_children=0&order=price` },
@@ -330,7 +341,7 @@
     if (!ready) {
       el.innerHTML = `<div class="radar-off">
         <strong>실시간 가격이 아직 연결되지 않았어요.</strong>
-        <p>지금 카드의 항공권 값은 추정치예요. 무료 가격 API 키를 GitHub 저장소에 넣으면 매일 아침 실제 최근 최저가로 바뀌고, 여기에 가장 싼 출발일이 떠요. 방법은 저장소의 README에 적어뒀어요.</p>
+        <p>지금 카드의 항공권 값은 추정치예요. 구글 항공권 가격 알림 메일을 시트로 모으는 연결을 하거나 무료 가격 API 키를 넣으면, 하루 두 번 실제 가격으로 바뀌고 여기에 가장 싼 출발일이 떠요. 방법은 저장소의 README에 적어뒀어요.</p>
       </div>`;
       return;
     }
@@ -339,6 +350,7 @@
       const P = PRICES.destinations[d.id] || {};
       const offers = (P.offers || []).filter((o) => o.nights === n && o.depart >= today).sort((a, b) => a.price - b.price).slice(0, 5);
       const g = P.google;
+      const lastAlert = (P.alerts || []).slice().sort((a, b) => (a.receivedAt < b.receivedAt ? 1 : -1))[0];
       const levelTxt = { low: "낮은 편", typical: "보통", high: "높은 편" }[g && g.level] || "";
       return `<article class="radar-card" data-id="${d.id}">
         <h3>${esc(d.name)} <span>${DATA.origin.code} → ${d.code} · ${n}박</span></h3>
@@ -348,6 +360,7 @@
             <span class="r-air">${esc(airline(o.airline))}${o.transfers ? ` · 경유 ${o.transfers}` : " · 직항"}</span>
             <span class="r-price">${man(o.price)}원</span>
           </button></li>`).join("")}</ol>` : `<p class="meta">이 기간에 ${n}박 일정으로 검색된 가격이 아직 없어요.</p>`}
+        ${lastAlert ? `<p class="g-note">구글 가격 알림: ${lastAlert.depart ? mdw(lastAlert.depart) + " 출발 " : ""}${man(lastAlert.price)}원${lastAlert.receivedAt ? ` · ${mdw(lastAlert.receivedAt.slice(0, 10))} 메일` : ""}${lastAlert.depart && lastAlert.nights ? ` <button type="button" class="link-btn radar-pick-alert" data-date="${lastAlert.depart}" data-nights="${lastAlert.nights}" data-dest="${d.id}">이 날짜로 보기</button>` : ""}</p>` : ""}
         ${g && g.price ? `<p class="g-note">구글 항공편 확인: ${mdw(g.depart)} 출발 ${man(g.price)}원${levelTxt ? `, 지금 가격은 <strong>${levelTxt}</strong>` : ""}${g.typicalRange ? ` (보통 ${man(g.typicalRange[0])}~${man(g.typicalRange[1])}원)` : ""}</p>` : ""}
       </article>`;
     }).join("");
@@ -359,7 +372,15 @@
         <h3>${esc(g.group)}</h3>
         <p class="meta">${esc(g.note)}</p>
         <div class="links">${g.sites.map((s) => `<a class="btn ghost" href="${s.href}" target="_blank" rel="noopener">${esc(s.name)}</a>`).join("")}</div>
-      </div>`).join("");
+      </div>`).join("") + `
+      <div class="box">
+        <h3>구글 가격 알림 받기</h3>
+        <ol class="track-steps">
+          <li>아래 여행 상세의 "구글 항공편" 버튼으로 날짜가 채워진 검색을 열어요.</li>
+          <li>검색 결과 위의 "가격 추적"을 켜요. 구글 로그인이 필요해요.</li>
+          <li>가격이 바뀌면 지메일로 알림이 와요. 알림을 시트로 모으는 연결을 해두면 이 사이트의 레이더와 경비에도 반영돼요.</li>
+        </ol>
+      </div>`;
   }
 
   function renderSource() {
@@ -369,7 +390,7 @@
       return;
     }
     const t = new Date(PRICES.updatedAt);
-    const src = [PRICES.sources.travelpayouts && "Aviasales 최근 검색가", PRICES.sources.google && "구글 항공편"].filter(Boolean).join(", ");
+    const src = [PRICES.sources.travelpayouts && "Aviasales 최근 검색가", PRICES.sources.google && "구글 항공편", PRICES.sources.alerts && "구글 가격 알림 메일"].filter(Boolean).join(", ");
     el.textContent = `항공권 가격: ${src} · ${t.getMonth() + 1}월 ${t.getDate()}일 ${pad2(t.getHours())}:${pad2(t.getMinutes())} 갱신. 최근 검색 기록 기준이라 결제 화면 가격과 다를 수 있어요.`;
   }
   const pad2 = (x) => String(x).padStart(2, "0");
@@ -455,9 +476,13 @@
       .catch(() => { /* 파일을 직접 열었거나 아직 없음: 추정 가격 사용 */ });
 
     $("#radar").addEventListener("click", (ev) => {
-      const b = ev.target.closest(".radar-pick");
+      const b = ev.target.closest(".radar-pick, .radar-pick-alert");
       if (!b) return;
       state.date = b.dataset.date;
+      if (b.dataset.nights === "2" || b.dataset.nights === "3") {
+        state.nights = Number(b.dataset.nights);
+        document.querySelector(`input[name="nights"][value="${state.nights}"]`).checked = true;
+      }
       $("#f-date").value = state.date;
       history.replaceState(null, "", "#" + b.dataset.dest);
       persist();

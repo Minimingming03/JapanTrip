@@ -3,6 +3,7 @@ name: 항공권 가격 갱신
 on:
   schedule:
     - cron: "17 21 * * *" # 매일 한국 시간 오전 6시 17분
+    - cron: "17 9 * * *"  # 매일 한국 시간 오후 6시 17분 (가격 알림 메일 반영용)
   workflow_dispatch: {}
 
 permissions:
@@ -24,6 +25,7 @@ jobs:
         env:
           TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          GOOGLE_ALERTS_URL: ${{ secrets.GOOGLE_ALERTS_URL }}
         run: node scripts/fetch-prices.mjs
       - name: 바뀌었으면 커밋
         run: |
