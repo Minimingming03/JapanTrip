@@ -8,6 +8,7 @@
  * @property {string} place     장소 이름
  * @property {string} note      한 줄 설명
  * @property {number} yen       교통비·입장료 합계 (엔). 식비는 따로 계산
+ * @property {number[]} [closedDays] 쉬는 요일 (0=일 ~ 6=토). 그날 걸리면 화면에 경고
  */
 
 /**
@@ -59,6 +60,43 @@ window.TRIP_DATA = {
   peakMultiplier: 1.6,
   weekendMultiplier: 1.1, // 금·토 출발
 
+  // 가격 비교·땡처리·저가항공 특가 사이트 모음
+  dealSites: [
+    {
+      group: "가격 비교",
+      note: "여러 항공사·여행사 가격을 한 번에 비교해요. 달력 보기로 싼 날짜를 찾기 좋아요.",
+      sites: [
+        { name: "스카이스캐너", href: "https://www.skyscanner.co.kr/" },
+        { name: "구글 항공편", href: "https://www.google.com/travel/flights?hl=ko" },
+        { name: "네이버 항공권", href: "https://flight.naver.com/" },
+        { name: "카약", href: "https://www.kayak.co.kr/" },
+        { name: "트립닷컴", href: "https://kr.trip.com/flights/" },
+      ],
+    },
+    {
+      group: "땡처리 · 막판 특가",
+      note: "출발이 가까운 남은 좌석을 싸게 파는 곳. 날짜를 유연하게 잡을 수 있을 때 좋아요.",
+      sites: [
+        { name: "땡처리닷컴", href: "https://www.ttang.com/" },
+        { name: "마이리얼트립", href: "https://www.myrealtrip.com/" },
+      ],
+    },
+    {
+      group: "저가항공 공식 특가",
+      note: "항공사 자체 특가는 홈페이지·앱에 먼저 떠요. 앱 알림을 켜두면 놓치지 않아요.",
+      sites: [
+        { name: "제주항공", href: "https://www.jejuair.net/" },
+        { name: "티웨이항공", href: "https://www.twayair.com/" },
+        { name: "진에어", href: "https://www.jinair.com/" },
+        { name: "피치항공", href: "https://www.flypeach.com/" },
+        { name: "에어서울", href: "https://flyairseoul.com/" },
+        { name: "이스타항공", href: "https://www.eastarjet.com/" },
+        { name: "에어부산", href: "https://www.airbusan.com/" },
+        { name: "ZIPAIR", href: "https://www.zipair.net/" },
+      ],
+    },
+  ],
+
   /** @type {Destination[]} */
   destinations: [
     {
@@ -67,8 +105,8 @@ window.TRIP_DATA = {
       kanji: "東京",
       code: "TYO",
       concept: "애니 성지 순례",
-      tagline: "아키하바라에서 굿즈를 뒤지고, 너의 이름은 계단에 서 보고, 지브리 미술관까지.",
-      keywords: ["아키하바라", "이케부쿠로", "스가 신사", "나카노 브로드웨이", "지브리 미술관"],
+      tagline: "아키하바라에서 굿즈를 뒤지고, 너의 이름은 계단에 서 보고, 시로바코의 이자카야에서 한 잔.",
+      keywords: ["아키하바라", "이케부쿠로", "스가 신사", "지브리 미술관", "시로바코 마츠테이"],
       flight: {
         typical: 270000,
         low: 200000,
@@ -78,6 +116,7 @@ window.TRIP_DATA = {
         skyscanner: "tyoa",
         naver: "NRT",
         google: "TYO",
+        airports: "NRT,HND", // 구글 항공편(SerpApi) 조회용
       },
       lodging: {
         area: "우에노 · 아사쿠사",
@@ -108,12 +147,14 @@ window.TRIP_DATA = {
             ],
           },
           {
-            title: "너의 이름은 계단 → 나카노 → 지브리",
+            title: "너의 이름은 계단 → 지브리 → 시로바코의 밤",
             stops: [
               { time: "아침", place: "스가 신사 계단 (요츠야)", note: "너의 이름은 마지막 장면의 그 계단. 주택가라 조용히 보고 와요.", yen: 210 },
               { time: "점심", place: "나카노 브로드웨이", note: "레트로 만화·피규어 가게 밀집. 가게 대부분이 정오쯤 열어요.", yen: 180 },
               { time: "오후", place: "지브리 미술관 (미타카)", note: "날짜·시간 지정 사전 예약 필수. 미타카역에서 걸어서 15분.", yen: 1200 },
-              { time: "저녁", place: "기치조지 하모니카 요코초", note: "좁은 골목 꼬치집. 돌아올 땐 JR 주오선.", yen: 480 },
+              { time: "해 질 녘", place: "무사시사카이 상점가", note: "시로바코의 무사시노 애니메이션이 있는 동네. 미타카에서 JR 한 정거장.", yen: 300 },
+              { time: "저녁", place: "이자카야 마츠테이 (松亭, 기치조지)", note: "시로바코에서 즈카가 아르바이트하던 그 가게. 기치조지역에서 걸어서 7분. 저녁 6시 반부터 영업, 일요일 휴무로 알려져 있어요. 술 한 잔과 안주 값을 따로 잡았어요.", yen: 3500, closedDays: [0] },
+              { time: "밤", place: "기치조지 → 숙소", note: "JR 주오선.", yen: 480 },
             ],
           },
           {
@@ -134,12 +175,13 @@ window.TRIP_DATA = {
             ],
           },
           {
-            title: "아키하바라 굿즈 사냥 → 지브리",
+            title: "아키하바라 굿즈 사냥 → 지브리 → 마츠테이",
             stops: [
               { time: "오전", place: "만다라케 · 스루가야", note: "핵심 중고 굿즈 가게 위주로.", yen: 170 },
               { time: "점심", place: "나카노 브로드웨이", note: "지브리 가는 길에 들르기 좋아요.", yen: 200 },
               { time: "오후", place: "지브리 미술관 (미타카)", note: "사전 예약 필수.", yen: 1200 },
-              { time: "저녁", place: "숙소로 복귀", note: "JR 주오선 → 야마노테선.", yen: 480 },
+              { time: "저녁", place: "이자카야 마츠테이 (松亭, 기치조지)", note: "시로바코의 그 이자카야. 미타카에서 JR 한 정거장. 저녁 6시 반부터, 일요일 휴무로 알려져 있어요.", yen: 3500, closedDays: [0] },
+              { time: "밤", place: "숙소로 복귀", note: "JR 주오선.", yen: 480 },
             ],
           },
           {
@@ -180,6 +222,7 @@ window.TRIP_DATA = {
         skyscanner: "fuk",
         naver: "FUK",
         google: "FUK",
+        airports: "FUK",
       },
       lodging: {
         area: "하카타 · 나카스",
@@ -281,6 +324,7 @@ window.TRIP_DATA = {
         skyscanner: "osaa",
         naver: "KIX",
         google: "OSA",
+        airports: "KIX",
       },
       lodging: {
         area: "난바 · 닛폰바시",

@@ -75,7 +75,23 @@
     <div id="tickets" class="tickets"></div>
   </section>
 
+  <section class="radar" aria-labelledby="radar-title">
+    <div class="section-head">
+      <h2 id="radar-title">최저가 레이더</h2>
+      <p id="radar-sub" class="section-sub">최근 실제로 검색된 항공권 중에서 가장 싼 출발일이에요. 날짜를 누르면 위 조건에 바로 반영돼요.</p>
+    </div>
+    <div id="radar" class="radar-grid"></div>
+  </section>
+
   <section id="detail" class="detail" aria-live="polite"></section>
+
+  <section class="deals" aria-labelledby="deals-title">
+    <div class="section-head">
+      <h2 id="deals-title">땡처리 · 특가 사이트</h2>
+      <p class="section-sub">같은 날짜로 여러 곳을 비교해보세요. 결제 전에 수하물 포함 여부와 환불 조건을 꼭 확인하세요.</p>
+    </div>
+    <div id="deals" class="deal-grid"></div>
+  </section>
 
   <section class="panel memo" aria-labelledby="memo-title">
     <h2 id="memo-title" class="panel-title">망상 메모장</h2>
@@ -91,7 +107,8 @@
   </section>
 
   <footer class="foot">
-    <p>가격은 비수기 평일 기준 대략값이고, 실제 가격과 다를 수 있어요. 항공권·숙소 가격은 검색 버튼으로 연결된 사이트에서 꼭 확인하세요. 성수기(연말연시, 설·추석, 일본 골든위크, 여름 휴가철)는 항공권을 1.6배, 금·토 출발은 1.1배로 계산해요.</p>
+    <p id="price-source"></p>
+    <p>추정 가격은 비수기 평일 기준 대략값이고, 실제 가격과 다를 수 있어요. 항공권·숙소 가격은 검색 버튼으로 연결된 사이트에서 꼭 확인하세요. 성수기(연말연시, 설·추석, 일본 골든위크, 여름 휴가철)는 항공권을 1.6배, 금·토 출발은 1.1배로 계산해요.</p>
   </footer>
 </div>
 <!-- PAGE:END -->

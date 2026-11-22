@@ -1,0 +1,23 @@
+{
+  "updatedAt": null,
+  "currency": "KRW",
+  "sources": {
+    "travelpayouts": false,
+    "google": false
+  },
+  "destinations": {
+    "tokyo": {
+      "offers": [],
+      "google": null
+    },
+    "fukuoka": {
+      "offers": [],
+      "google": null
+    },
+    "kansai": {
+      "offers": [],
+      "google": null
+    }
+  },
+  "errors": []
+}

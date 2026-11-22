@@ -7,6 +7,9 @@
   const STORE_KEY = "mangsang-settings-v1";
   const MEMO_KEY = "mangsang-memos-v1";
 
+  /** data/prices.json 내용. 없거나 못 읽으면 null → 추정 가격 사용 */
+  let PRICES = null;
+
   // ---------- 저장 (실패해도 화면은 정상 동작) ----------
   function load(key, fallback) {
     try {
@@ -97,13 +100,38 @@
     return { factor: f, peak: uniq, weekend };
   }
 
+  /**
+   * 고른 날짜·박수에 맞는 실제 가격 찾기
+   * 정확히 같은 날 → 앞뒤 3일 안 → 구글 항공편 확인값 순서
+   */
+  function liveFlight(dest) {
+    const P = PRICES && PRICES.destinations && PRICES.destinations[dest.id];
+    if (!P) return null;
+    const n = Number(state.nights);
+    const g = P.google;
+    if (g && g.price && g.depart === state.date && g.nights === n) {
+      return { price: g.price, kind: "google", depart: g.depart, airline: g.airline, link: g.link };
+    }
+    const offers = (P.offers || []).filter((o) => o.nights === n);
+    const exact = offers.find((o) => o.depart === state.date);
+    if (exact) return Object.assign({ kind: "exact" }, exact);
+    const target = parseYmd(state.date).getTime();
+    const near = offers
+      .map((o) => ({ o, gap: Math.abs(parseYmd(o.depart).getTime() - target) / 86400000 }))
+      .filter((x) => x.gap <= 3)
+      .sort((a, b) => a.gap - b.gap || a.o.price - b.o.price)[0];
+    if (near) return Object.assign({ kind: "near" }, near.o);
+    return null;
+  }
+
   /** @param {import('./data.js').Destination} dest */
   function estimate(dest) {
     const n = Number(state.nights);
     const rate = Number(state.rate) / 100; // 1엔당 원
     const ff = flightFactor();
     const plan = dest.plans[n];
-    const flight = Math.round((dest.flight.typical * ff.factor) / 1000) * 1000;
+    const live = liveFlight(dest);
+    const flight = live ? live.price : Math.round((dest.flight.typical * ff.factor) / 1000) * 1000;
     const lodgingYen = dest.lodging[state.tier] * n;
     const localYen = plan.reduce((s, day) => s + day.stops.reduce((a, st) => a + st.yen, 0), 0);
     const foodYen = dest.food[state.food] * (n + 1);
@@ -117,8 +145,22 @@
     };
     const total = parts.flight + parts.lodging + parts.local + parts.food + parts.shop;
     const status = total <= state.target ? "ok" : total <= state.max ? "tight" : "over";
-    return { parts, total, status, plan, lodgingYen, localYen, foodYen, shopYen, ff };
+    return { parts, total, status, plan, lodgingYen, localYen, foodYen, shopYen, ff, live };
   }
+
+  const LIVE_TEXT = {
+    exact: "실제 최근가",
+    near: "근처 날짜 실제가",
+    google: "구글 항공편 확인가",
+  };
+  // Aviasales는 항공사를 코드로 줘요 → 이름으로 바꿔서 표시
+  const AIRLINES = { "7C": "제주항공", TW: "티웨이", LJ: "진에어", ZE: "이스타", BX: "에어부산", RS: "에어서울", MM: "피치", ZG: "ZIPAIR", YP: "에어프레미아", KE: "대한항공", OZ: "아시아나", JL: "JAL", NH: "ANA" };
+  const airline = (c) => AIRLINES[c] || c || "";
+  const flightLabel = (e) => (e.live ? LIVE_TEXT[e.live.kind] : "추정");
+  const mdw = (s) => {
+    const d = parseYmd(s);
+    return `${d.getMonth() + 1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})`;
+  };
 
   const STATUS_TEXT = {
     ok: ["예산 안", "WITHIN"],
@@ -197,7 +239,7 @@
           </div>
           <div class="meter-legend"><span>목표 ${man(state.target)}</span><span>최대 ${man(state.max)}</span></div>
           <dl class="breakdown">
-            <dt>항공권 왕복</dt><dd>${won(e.parts.flight)}원</dd>
+            <dt>항공권 왕복 <span class="src${e.live ? " live" : ""}">${flightLabel(e)}</span></dt><dd>${won(e.parts.flight)}원</dd>
             <dt>숙소 ${n}박</dt><dd>${won(e.parts.lodging)}원</dd>
             <dt>교통·입장료</dt><dd>${won(e.parts.local)}원</dd>
             <dt>식비 ${n + 1}일</dt><dd>${won(e.parts.food)}원</dd>
@@ -240,7 +282,8 @@
         <div class="book-card">
           <h3>항공권 찾기</h3>
           <p class="meta">인천 → ${esc(d.flight.airport)} · 대표 저가항공: ${d.flight.airlines.map(esc).join(", ")} (시기마다 달라요)</p>
-          <p class="price">평소 왕복 ${man(d.flight.low)} ~ ${man(d.flight.high)}원 · 계산에 쓴 값 ${man(e.parts.flight)}원</p>
+          <p class="price">평소 왕복 ${man(d.flight.low)} ~ ${man(d.flight.high)}원 · 계산에 쓴 값 ${man(e.parts.flight)}원 (${flightLabel(e)})</p>
+          ${e.live ? `<p class="meta">${mdw(e.live.depart)} 출발${e.live.airline ? " · " + esc(airline(e.live.airline)) : ""}${e.live.kind === "near" ? " · 고른 날짜와 가장 가까운 날의 가격이에요" : ""}${e.live.link ? ` · <a href="${esc(e.live.link)}" target="_blank" rel="noopener">이 가격 보러 가기</a>` : ""}</p>` : ""}
           <div class="links">${L.flights.map((l) => `<a class="btn ghost" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`).join("")}</div>
         </div>
         <div class="book-card">
@@ -254,11 +297,14 @@
       <div class="days">
         ${e.plan.map((day, i) => {
           const dayYen = day.stops.reduce((a, s) => a + s.yen, 0);
+          const date = addDays(out, i);
+          const closed = day.stops.filter((s) => s.closedDays && s.closedDays.includes(date.getDay()));
           return `<section class="day">
             <div class="day-head">
-              <h3><span class="day-no">DAY ${i + 1}</span>${esc(day.title)}</h3>
+              <h3><span class="day-no">DAY ${i + 1} · ${fmt(date)}</span>${esc(day.title)}</h3>
               <span class="day-cost">교통·입장 ${yen(dayYen)} + 식비 ${yen(d.food[state.food])}</span>
             </div>
+            ${closed.length ? `<p class="closed-warn">${closed.map((s) => esc(s.place)).join(", ")}은(는) ${"일월화수목금토"[date.getDay()]}요일에 쉬는 날로 알려져 있어요. 출발일을 하루 옮기거나 일정 순서를 바꿔보세요.</p>` : ""}
             <ol class="stops">${day.stops.map(stopRow).join("")}</ol>
           </section>`;
         }).join("")}
@@ -275,6 +321,58 @@
         </div>
       </div>`;
   }
+
+  // ---------- 최저가 레이더 ----------
+  function renderRadar() {
+    const el = $("#radar");
+    const n = Number(state.nights);
+    const ready = PRICES && PRICES.updatedAt;
+    if (!ready) {
+      el.innerHTML = `<div class="radar-off">
+        <strong>실시간 가격이 아직 연결되지 않았어요.</strong>
+        <p>지금 카드의 항공권 값은 추정치예요. 무료 가격 API 키를 GitHub 저장소에 넣으면 매일 아침 실제 최근 최저가로 바뀌고, 여기에 가장 싼 출발일이 떠요. 방법은 저장소의 README에 적어뒀어요.</p>
+      </div>`;
+      return;
+    }
+    const today = ymd(new Date());
+    el.innerHTML = DESTS.map((d) => {
+      const P = PRICES.destinations[d.id] || {};
+      const offers = (P.offers || []).filter((o) => o.nights === n && o.depart >= today).sort((a, b) => a.price - b.price).slice(0, 5);
+      const g = P.google;
+      const levelTxt = { low: "낮은 편", typical: "보통", high: "높은 편" }[g && g.level] || "";
+      return `<article class="radar-card" data-id="${d.id}">
+        <h3>${esc(d.name)} <span>${DATA.origin.code} → ${d.code} · ${n}박</span></h3>
+        ${offers.length ? `<ol class="radar-list">${offers.map((o) => `
+          <li><button type="button" class="radar-pick${o.depart === state.date ? " on" : ""}" data-date="${o.depart}" data-dest="${d.id}">
+            <span class="r-date">${mdw(o.depart)}</span>
+            <span class="r-air">${esc(airline(o.airline))}${o.transfers ? ` · 경유 ${o.transfers}` : " · 직항"}</span>
+            <span class="r-price">${man(o.price)}원</span>
+          </button></li>`).join("")}</ol>` : `<p class="meta">이 기간에 ${n}박 일정으로 검색된 가격이 아직 없어요.</p>`}
+        ${g && g.price ? `<p class="g-note">구글 항공편 확인: ${mdw(g.depart)} 출발 ${man(g.price)}원${levelTxt ? `, 지금 가격은 <strong>${levelTxt}</strong>` : ""}${g.typicalRange ? ` (보통 ${man(g.typicalRange[0])}~${man(g.typicalRange[1])}원)` : ""}</p>` : ""}
+      </article>`;
+    }).join("");
+  }
+
+  function renderDeals() {
+    $("#deals").innerHTML = (DATA.dealSites || []).map((g) => `
+      <div class="box">
+        <h3>${esc(g.group)}</h3>
+        <p class="meta">${esc(g.note)}</p>
+        <div class="links">${g.sites.map((s) => `<a class="btn ghost" href="${s.href}" target="_blank" rel="noopener">${esc(s.name)}</a>`).join("")}</div>
+      </div>`).join("");
+  }
+
+  function renderSource() {
+    const el = $("#price-source");
+    if (!PRICES || !PRICES.updatedAt) {
+      el.textContent = "항공권 가격: 추정치 (실시간 가격 미연결)";
+      return;
+    }
+    const t = new Date(PRICES.updatedAt);
+    const src = [PRICES.sources.travelpayouts && "Aviasales 최근 검색가", PRICES.sources.google && "구글 항공편"].filter(Boolean).join(", ");
+    el.textContent = `항공권 가격: ${src} · ${t.getMonth() + 1}월 ${t.getDate()}일 ${pad2(t.getHours())}:${pad2(t.getMinutes())} 갱신. 최근 검색 기록 기준이라 결제 화면 가격과 다를 수 있어요.`;
+  }
+  const pad2 = (x) => String(x).padStart(2, "0");
 
   // ---------- 메모 ----------
   let memos = load(MEMO_KEY, []);
@@ -326,7 +424,9 @@
   function renderAll() {
     renderSeason();
     renderTickets();
+    renderRadar();
     renderDetail();
+    renderSource();
   }
 
   function select(id, scroll) {
@@ -334,6 +434,7 @@
     state.selected = id;
     persist();
     renderTickets();
+    renderRadar();
     renderDetail();
     if (scroll) $("#detail").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   }
@@ -343,7 +444,26 @@
     if (state.rate < 50) state.rate = Math.round(state.rate * 100);
     syncForm();
     renderAll();
+    renderDeals();
     renderMemos();
+
+    fetch("data/prices.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json) { PRICES = json; renderAll(); }
+      })
+      .catch(() => { /* 파일을 직접 열었거나 아직 없음: 추정 가격 사용 */ });
+
+    $("#radar").addEventListener("click", (ev) => {
+      const b = ev.target.closest(".radar-pick");
+      if (!b) return;
+      state.date = b.dataset.date;
+      $("#f-date").value = state.date;
+      history.replaceState(null, "", "#" + b.dataset.dest);
+      persist();
+      renderAll();
+      select(b.dataset.dest, true);
+    });
 
     $("#conditions").addEventListener("input", () => { readForm(); persist(); renderAll(); });
     $("#conditions").addEventListener("submit", (ev) => ev.preventDefault());
