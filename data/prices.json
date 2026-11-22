@@ -3,20 +3,24 @@
   "currency": "KRW",
   "sources": {
     "travelpayouts": false,
-    "google": false
+    "google": false,
+    "alerts": false
   },
   "destinations": {
     "tokyo": {
       "offers": [],
-      "google": null
+      "google": null,
+      "alerts": []
     },
     "fukuoka": {
       "offers": [],
-      "google": null
+      "google": null,
+      "alerts": []
     },
     "kansai": {
       "offers": [],
-      "google": null
+      "google": null,
+      "alerts": []
     }
   },
   "errors": []
