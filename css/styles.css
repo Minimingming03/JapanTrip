@@ -1,0 +1,276 @@
+/* 레이아웃: 일본 철도 승차권(きっぷ) 모티프. 조건 패널 → 승차권 3장 → 선택한 여행의 일정표 → 메모장 */
+:root {
+  --bg: #e6ece9;          /* 승차권 용지 바탕 */
+  --surface: #f6f9f7;
+  --ink: #16232a;
+  --muted: #55676d;
+  --line: #c2d0cb;
+  --accent: #1d4aa0;      /* 승차권 인쇄 청색 */
+  --accent-ink: #ffffff;
+  --stamp: #c4362e;       /* 개찰 도장 */
+  --ok: #2b7a4b;
+  --warn: #a96f12;
+  --over: #c4362e;
+  --tokyo: #6a3d9e;
+  --fukuoka: #0c7a72;
+  --kansai: #5c6b25;
+
+  --f-display: "Black Han Sans", "IBM Plex Sans KR", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-jp: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1619; --surface: #152125; --ink: #e2ebe7; --muted: #93a5a7; --line: #2a3b40;
+    --accent: #86abf2; --accent-ink: #0e1619; --stamp: #f06a5f;
+    --ok: #5cc28a; --warn: #e3ac4c; --over: #f06a5f;
+    --tokyo: #b991e8; --fukuoka: #4cc2b6; --kansai: #adc06c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1619; --surface: #152125; --ink: #e2ebe7; --muted: #93a5a7; --line: #2a3b40;
+  --accent: #86abf2; --accent-ink: #0e1619; --stamp: #f06a5f;
+  --ok: #5cc28a; --warn: #e3ac4c; --over: #f06a5f;
+  --tokyo: #b991e8; --fukuoka: #4cc2b6; --kansai: #adc06c;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 32px 48px; display: grid; gap: 40px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- 머리말 ---------- */
+.hero { display: grid; gap: 10px; max-width: 40rem; }
+.eyebrow { font: 600 12px/1 var(--f-mono); letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
+.hero h1 { font: 400 clamp(44px, 9vw, 76px)/1 var(--f-display); letter-spacing: -.01em; }
+.lede { color: var(--muted); font-size: 16px; max-width: 34rem; }
+
+/* ---------- 조건 패널 ---------- */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 16px; }
+.panel-title { font: 600 13px/1 var(--f-mono); letter-spacing: .12em; color: var(--muted); }
+.conditions { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px 20px; }
+.field { display: grid; gap: 6px; align-content: start; border: 0; margin: 0; padding: 0; min-width: 0; }
+.field > label, .field > legend { font-size: 13px; font-weight: 500; color: var(--muted); padding: 0; margin-bottom: 6px; }
+fieldset.field > legend { margin-bottom: 6px; }
+input[type="date"], input[type="number"], input[type="text"], select {
+  font: 500 15px/1.2 var(--f-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  width: 100%;
+  min-width: 0;
+}
+.hint { font-size: 12.5px; color: var(--muted); min-height: 1.2em; }
+.hint.peak { color: var(--over); font-weight: 500; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--bg); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { flex: 1 1 0; text-align: center; padding: 9px 6px; font-size: 13.5px; cursor: pointer; color: var(--muted); user-select: none; }
+.seg label + input + label { border-left: 1px solid var(--line); }
+.seg input:checked + label { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -3px; }
+
+/* ---------- 승차권 ---------- */
+.section-head { display: grid; gap: 4px; margin-bottom: 16px; }
+.section-head h2, .detail h2 { font: 400 28px/1.15 var(--f-display); }
+.section-sub { color: var(--muted); font-size: 14px; }
+
+.tickets { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.ticket {
+  --c: var(--accent);
+  position: relative;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--c) 7%, transparent) 7px 8px),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
+  border-radius: var(--r);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  min-width: 0;
+}
+.ticket[data-id="tokyo"] { --c: var(--tokyo); }
+.ticket[data-id="fukuoka"] { --c: var(--fukuoka); }
+.ticket[data-id="kansai"] { --c: var(--kansai); }
+.ticket.is-selected { outline: 2px solid var(--c); outline-offset: 3px; }
+
+.t-band { background: var(--c); color: var(--surface); padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; border-radius: var(--r) var(--r) 0 0; font: 600 11.5px/1 var(--f-mono); letter-spacing: .12em; }
+.t-band .jp { font-family: var(--f-jp); letter-spacing: .3em; font-size: 13px; }
+.t-head { padding: 16px 16px 4px; display: grid; gap: 6px; position: relative; }
+.route { font: 600 30px/1 var(--f-mono); letter-spacing: .02em; display: flex; align-items: center; gap: 10px; }
+.route, .t-name { padding-right: 84px; } /* 도장 자리 비워두기 */
+.route .arrow { color: var(--c); font-size: 22px; }
+.t-name { font-weight: 700; font-size: 17px; }
+.t-concept { color: var(--c); font-weight: 500; }
+.t-tag { color: var(--muted); font-size: 13.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 0; list-style: none; margin: 0; }
+.chips li { font-size: 12px; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--c) 40%, var(--line)); border-radius: 999px; color: var(--ink); background: var(--surface); }
+
+.t-body { padding: 14px 16px 16px; display: grid; gap: 12px; align-content: start; }
+.perf { position: relative; border-top: 2px dashed color-mix(in srgb, var(--c) 35%, var(--line)); margin: 4px 0 0; }
+.perf::before, .perf::after { content: ""; position: absolute; top: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line)); }
+.perf::before { left: -11px; clip-path: inset(0 0 0 50%); }
+.perf::after { right: -11px; clip-path: inset(0 50% 0 0); }
+
+.total { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.total .label { font-size: 13px; color: var(--muted); }
+.total .num { font: 600 30px/1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.total .num small { font-size: 15px; margin-left: 2px; }
+
+.meter { position: relative; height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.meter .fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--status); }
+.meter .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: .55; }
+.meter-legend { display: flex; justify-content: space-between; font: 500 11.5px/1 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.stamp {
+  position: absolute; top: 12px; right: 14px;
+  width: 74px; height: 74px; border-radius: 50%;
+  border: 2.5px solid var(--status); color: var(--status);
+  display: grid; place-items: center; text-align: center;
+  font: 400 15px/1.05 var(--f-display);
+  transform: rotate(-12deg);
+  background: color-mix(in srgb, var(--status) 8%, transparent);
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--status);
+}
+.stamp small { display: block; font: 600 9px/1 var(--f-mono); letter-spacing: .08em; margin-top: 3px; }
+[data-status="ok"] { --status: var(--ok); }
+[data-status="tight"] { --status: var(--warn); }
+[data-status="over"] { --status: var(--over); }
+
+.breakdown { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: 13.5px; }
+.breakdown dt { color: var(--muted); }
+.breakdown dd { margin: 0; text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.cheapest { font: 600 11px/1 var(--f-mono); letter-spacing: .08em; color: var(--c); }
+
+.t-foot { padding: 0 16px 16px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font: 500 14.5px/1 var(--f-body);
+  padding: 12px 16px; border-radius: var(--r);
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  text-decoration: none; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.ticket .btn { width: 100%; background: var(--c); border-color: var(--c); color: var(--surface); }
+.ticket.is-selected .btn { background: transparent; color: var(--c); }
+
+/* ---------- 상세 ---------- */
+.detail { display: grid; gap: 24px; scroll-margin-top: 16px; }
+.detail-head { display: grid; gap: 8px; border-left: 4px solid var(--c); padding-left: 14px; }
+.detail-head .kicker { font: 600 12px/1 var(--f-mono); letter-spacing: .12em; color: var(--c); }
+.detail-head p { color: var(--muted); max-width: 40rem; }
+.detail[data-id="tokyo"] { --c: var(--tokyo); }
+.detail[data-id="fukuoka"] { --c: var(--fukuoka); }
+.detail[data-id="kansai"] { --c: var(--kansai); }
+
+.book { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.book-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.book-card h3 { font-size: 16px; }
+.book-card .meta { font-size: 13.5px; color: var(--muted); }
+.book-card .price { font: 600 15px/1.3 var(--f-mono); font-variant-numeric: tabular-nums; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; }
+.links .btn { padding: 10px 12px; font-size: 13.5px; }
+
+.days { display: grid; gap: 16px; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.day-head h3 { font-size: 16px; display: flex; gap: 10px; align-items: baseline; }
+.day-no { font: 600 13px/1 var(--f-mono); color: var(--c); letter-spacing: .06em; }
+.day-cost { font: 500 13px/1 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.stops { list-style: none; margin: 0; padding: 4px 0; }
+.stop { display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 12px; padding: 10px 16px; align-items: baseline; }
+.stop + .stop { border-top: 1px dashed var(--line); }
+.stop .when { font: 500 12px/1.4 var(--f-mono); color: var(--muted); }
+.stop .what { min-width: 0; }
+.stop .what strong { display: block; font-weight: 500; }
+.stop .what span { font-size: 13.5px; color: var(--muted); }
+.stop .yen { font: 500 13px/1.4 var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stop .yen.free { color: var(--muted); }
+
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.box h3 { font-size: 16px; }
+.box ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; }
+.box .stops { padding: 0; }
+.box .stop { padding: 8px 0; }
+
+/* ---------- 메모 ---------- */
+.memo-form { display: grid; grid-template-columns: minmax(0, 180px) minmax(0, 1fr) auto; gap: 8px; }
+.memo-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.memo-list li { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: var(--bg); border-radius: var(--r); }
+.memo-list .tag { font: 600 11px/1 var(--f-mono); padding: 4px 6px; border-radius: 4px; color: var(--surface); background: var(--muted); white-space: nowrap; }
+.memo-list .tag[data-id="tokyo"] { background: var(--tokyo); }
+.memo-list .tag[data-id="fukuoka"] { background: var(--fukuoka); }
+.memo-list .tag[data-id="kansai"] { background: var(--kansai); }
+.memo-list .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.memo-list button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 4px 6px; }
+.memo-list button:hover { color: var(--over); }
+.memo-empty { color: var(--muted); font-size: 14px; }
+
+.foot { color: var(--muted); font-size: 12.5px; max-width: 48rem; }
+
+@media (max-width: 560px) {
+  .wrap { gap: 32px; padding-block: 20px 40px; }
+  .memo-form { grid-template-columns: 1fr; }
+  .stop { grid-template-columns: 1fr auto; }
+  .stop .when { grid-column: 1 / -1; }
+  .route { font-size: 26px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ticket { transition: transform .15s ease; }
+  .ticket:hover { transform: translateY(-2px); }
+  .meter .fill { transition: width .3s ease; }
+}
+
+/* ---------- 실시간 가격 표시 ---------- */
+.meta { font-size: 13.5px; color: var(--muted); }
+.src { font: 600 10.5px/1 var(--f-mono); padding: 2px 5px; border-radius: 3px; margin-left: 4px; border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; }
+.src.live { border-color: var(--ok); color: var(--ok); }
+
+/* ---------- 최저가 레이더 ---------- */
+.radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.radar-card { --c: var(--accent); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: var(--r); padding: 14px 16px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.radar-card[data-id="tokyo"] { --c: var(--tokyo); }
+.radar-card[data-id="fukuoka"] { --c: var(--fukuoka); }
+.radar-card[data-id="kansai"] { --c: var(--kansai); }
+.radar-card h3 { font-size: 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.radar-card h3 span { font: 500 12px/1 var(--f-mono); color: var(--muted); }
+.radar-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.radar-pick { width: 100%; display: grid; grid-template-columns: 76px 1fr auto; gap: 8px; align-items: baseline; text-align: left; padding: 9px 10px; border-radius: var(--r); border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; font: inherit; }
+.radar-pick:hover { border-color: var(--c); }
+.radar-pick.on { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+.r-date { font: 600 13px/1.3 var(--f-mono); }
+.r-air { font-size: 12.5px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-price { font: 600 14px/1.3 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--c); }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.track-steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.g-note { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+.radar-off { grid-column: 1 / -1; background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 6px; font-size: 14px; }
+.radar-off p { color: var(--muted); max-width: 46rem; }
+
+/* ---------- 쉬는 날 경고 ---------- */
+.closed-warn { margin: 10px 16px 0; padding: 8px 10px; border-radius: var(--r); font-size: 13px; color: var(--over); background: color-mix(in srgb, var(--over) 10%, transparent); }
+
+/* ---------- 특가 사이트 ---------- */
+.deal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.foot { display: grid; gap: 6px; }
+#price-source { color: var(--ink); }
